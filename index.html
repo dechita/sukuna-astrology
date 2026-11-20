@@ -27,6 +27,9 @@ p{max-width:62ch}
 .tool{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(24px,4vw,56px);align-items:center;margin-top:18px}
 @media(max-width:820px){.tool{grid-template-columns:minmax(0,1fr)}}
 label{display:block;font-size:15px;color:var(--soft);margin:18px 0 6px}
+.dob{display:flex;gap:8px;flex-wrap:wrap;width:min(100%,360px)}
+.dob select{font:inherit;font-size:18px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:48px;flex:1 1 auto}
+.dob select.m{flex-basis:140px}
 input[type=date]{font:inherit;font-size:18px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:48px;width:min(100%,320px)}
 input:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 .res{margin-top:22px;border-top:1px solid var(--line);padding-top:18px}
@@ -66,8 +69,8 @@ footer{font-size:14px;color:var(--soft)}
 <p>Sukuyo (宿曜) is Japanese moon astrology. The Moon passes through 27 Mansions, and the one it stood in on your birthday is yours. Enter your date of birth: no birth time needed.</p>
 <div class="tool">
  <div>
-  <label for="d1">Your date of birth</label>
-  <input type="date" id="d1" min="1925-01-01" max="2030-12-31" value="1994-07-12">
+  <label for="d1m">Your date of birth</label>
+  <div class="dob" data-for="d1"></div><input type="hidden" id="d1" value="1994-07-12">
   <div class="err" id="e1"></div>
   <div class="res" id="r1"></div>
   <p class="note" id="ex">Showing an example date. Change it to see yours.</p>
@@ -81,7 +84,7 @@ footer{font-size:14px;color:var(--soft)}
 <h2>Your bond with someone</h2>
 <p>In Sukuyo, the distance between two Mansions sets the kind of relationship two people have. Add their date of birth.</p>
 <div class="cmp">
- <div><label for="d2">Their date of birth</label><input type="date" id="d2" min="1925-01-01" max="2030-12-31"><div class="err" id="e2"></div></div>
+ <div><label for="d2m">Their date of birth</label><div class="dob" data-for="d2"></div><input type="hidden" id="d2" value=""><div class="err" id="e2"></div></div>
 </div>
 <div class="bond" id="bond" hidden></div>
 </div></section>
@@ -132,6 +135,16 @@ const BOND={
 const idx=v=>{if(!v)return null;const [y,m,d]=v.split('-').map(Number);const n=Math.round((Date.UTC(y,m-1,d)-START)/864e5);return n>=0&&n<T.length?A.indexOf(T[n]):-1};
 const ring=document.getElementById('ring');
 const drawRing=(me)=>{let s='<circle cx="260" cy="260" r="214" fill="none" stroke="currentColor" stroke-opacity=".18"/>';M.forEach((x,i)=>{const a=-Math.PI/2+i*2*Math.PI/27,X=260+214*Math.cos(a),Y=260+214*Math.sin(a);if(i===me)s+=`<circle class="dot" cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="21"/>`;s+=`<text x="${X.toFixed(1)}" y="${Y.toFixed(1)}" class="${i===me?'on':''}">${x[0]}</text>`});if(me!=null&&me>=0){s+=`<text x="260" y="246" style="font-family:Cardo;font-size:26px;fill:var(--ink)">${M[me][1]}, the ${M[me][2]}</text><text x="260" y="282" style="font-family:Cardo;font-size:18px;fill:var(--soft)">your Mansion, ${me+1} of 27</text>`}ring.innerHTML=s};
+const MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+document.querySelectorAll('.dob').forEach(box=>{const h=document.getElementById(box.dataset.for);const v=h.value?h.value.split('-').map(Number):null;
+ const mk=(cls,ph,opts,sel,id)=>{const e=document.createElement('select');e.className=cls;if(id)e.id=id;e.setAttribute('aria-label',ph);e.innerHTML=`<option value="">${ph}</option>`+opts.map(([val,t])=>`<option value="${val}"${val===sel?' selected':''}>${t}</option>`).join('');box.appendChild(e);return e};
+ const sm=mk('m','Month',MON.map((t,i)=>[i+1,t]),v&&v[1],box.dataset.for+'m');
+ const sd=mk('d','Day',Array.from({length:31},(_,i)=>[i+1,String(i+1)]),v&&v[2]);
+ const ys=[];for(let y=2030;y>=1925;y--)ys.push([y,String(y)]);const sy=mk('y','Year',ys,v&&v[0]);
+ const upd=()=>{const y=+sy.value,m=+sm.value;let d=+sd.value;const max=new Date(Date.UTC(y||2000,m||1,0)).getUTCDate();
+  [...sd.options].forEach(o=>{if(o.value)o.disabled=+o.value>max});if(d>max){d=max;sd.value=String(max)}
+  h.value=(y&&m&&d)?`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`:'';h.dispatchEvent(new Event('input'))};
+ [sm,sd,sy].forEach(e=>e.addEventListener('change',upd))});
 const r1=document.getElementById('r1'),e1=document.getElementById('e1'),d1=document.getElementById('d1'),d2=document.getElementById('d2'),e2=document.getElementById('e2'),bond=document.getElementById('bond'),g=document.getElementById('g27');
 let me=null;
 const render=()=>{const i=idx(d1.value);if(i===-1){e1.textContent='Please choose a date between 1925 and 2030.';return}e1.textContent='';me=i;if(i==null){r1.innerHTML='';drawRing(null);return}
